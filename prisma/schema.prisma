@@ -1,0 +1,162 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  startups  Startup[]
+}
+
+model Startup {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  mission       String?
+  vision        String?
+  goals         String?
+  customers     String?
+  pricing       String?
+  competitors   String?
+  roadmap       String?
+  decisions     String?
+  deadlines     String?
+  techStack     String?
+  investorNotes String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  memories      Memory[]
+  documents     Document[]
+  meetings      Meeting[]
+  tasks         Task[]
+  journals      Journal[]
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  startupId String
+  startup   Startup   @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  title     String
+  isPinned  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+
+  @@index([startupId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // "user" | "assistant"
+  content        String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+model Memory {
+  id             String   @id @default(uuid())
+  startupId      String
+  startup        Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  content        String
+  importance     Int      @default(5)     // 1 to 10 scale
+  confidence     Float    @default(1.0)   // 0.0 to 1.0
+  embeddingScore Float    @default(0.0)   // Similarity score from Hindsight recall
+  category       String   // e.g. "Startup", "Decision", "Customer", "Technical", "Competitor"
+  tags           String[] // String tags array
+  frequency      Int      @default(1)     // Number of times accessed/recalled
+  source         String   @default("chat")// "chat" | "document" | "meeting" | "journal"
+  conversationId String?
+  lastUsed       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([startupId])
+  @@index([category])
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  startupId   String
+  startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  name        String
+  type        String   // "pdf" | "docx" | "txt" | "md"
+  content     String
+  isProcessed Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startupId])
+}
+
+model Meeting {
+  id          String   @id @default(uuid())
+  startupId   String
+  startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  title       String
+  date        DateTime @default(now())
+  transcript  String
+  summary     String?
+  actionItems Json?    // JSON array of strings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startupId])
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  startupId     String
+  startup       Startup    @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  priority      Priority   @default(MEDIUM)
+  deadline      DateTime?
+  status        TaskStatus @default(TODO)
+  aiSuggestions String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([startupId])
+}
+
+model Journal {
+  id         String   @id @default(uuid())
+  startupId  String
+  startup    Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  title      String
+  content    String
+  date       DateTime @default(now())
+  mood       String?
+  milestones String?
+  lessons    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([startupId])
+}
